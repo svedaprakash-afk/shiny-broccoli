@@ -2,23 +2,27 @@
 // Only CC0 / CC BY / CC BY-SA / public domain are kept. Pictures are hot-linked from Wikimedia, never copied.
 // Output: data/images.json  { activityId: [{url, credit, license, source}] }
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
-import { normaliseImage } from '../lib/schema.mjs';
+import { normaliseImage, LICENSE_RE } from '../lib/schema.mjs';
 
 const UA = { 'User-Agent': 'swiss-kids-activities (github.com/svedaprakash-afk/shiny-broccoli)' };
 const strip = s => String(s || '').replace(/<[^>]*>/g, ' ').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#0?39;/g, "'").replace(/\s+/g, ' ').trim();
 const chunks = (a, n) => Array.from({ length: Math.ceil(a.length / n) }, (_, i) => a.slice(i * n, i * n + n));
 
 /** One Commons imageinfo page -> image object, or null if not openly licensed. Exported for tests. */
-export function pickImage(page) {
+export function pickImage(page, why = {}) {
+  const no = r => { why[r] = (why[r] || 0) + 1; return null; };
   const ii = page?.imageinfo?.[0], m = ii?.extmetadata || {};
-  if (!ii?.thumburl) return null;
-  if (strip(m.NonFree?.value) || strip(m.Restrictions?.value)) return null;
+  if (!ii?.thumburl) return no('no-image-info');
+  if (strip(m.NonFree?.value)) return no('non-free');
+  if (strip(m.Restrictions?.value)) return no(`restricted:${strip(m.Restrictions.value).slice(0, 40)}`);
   const license = strip(m.LicenseShortName?.value).replace(/\s+[a-z]{2}$/, ''); // "CC BY-SA 3.0 de" -> "CC BY-SA 3.0"
-  return normaliseImage({
+  if (!LICENSE_RE.test(license)) return no(`licence:${license.slice(0, 40) || '(none)'}`);
+  const img = normaliseImage({
     url: ii.thumburl, license,
     credit: strip(m.Artist?.value).slice(0, 120) || 'Unknown author (Wikimedia Commons)',
     source: ii.descriptionurl,
   });
+  return img || no('failed-validation');
 }
 
 // ---- Wikidata places with a photo (zoos, amusement parks, aquariums) matched to our entries by name AND location ----
@@ -79,7 +83,7 @@ async function wikidataFiles(ids) {
 }
 
 async function commonsImages(titles) {
-  const out = {};
+  const out = {}, why = {};
   for (const part of chunks(titles, 40)) {
     try {
       const q = new URLSearchParams({ action: 'query', format: 'json', prop: 'imageinfo', iiprop: 'url|extmetadata', iiurlwidth: '640',
@@ -87,11 +91,12 @@ async function commonsImages(titles) {
       const j = await json(`https://commons.wikimedia.org/w/api.php?${q}`);
       const norm = Object.fromEntries((j.query?.normalized || []).map(n => [n.to, n.from]));
       for (const p of Object.values(j.query?.pages || {})) {
-        const img = pickImage(p);
+        const img = pickImage(p, why);
         if (img) { out[p.title] = img; if (norm[p.title]) out[norm[p.title]] = img; }
       }
     } catch (e) { console.warn(`commons batch failed: ${e.message}`); }
   }
+  console.log(`commons: ${Object.keys(out).length} accepted; rejected by reason:`, JSON.stringify(why));
   return out;
 }
 

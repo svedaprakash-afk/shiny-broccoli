@@ -1,0 +1,28 @@
+name: Publish approved submission
+on:
+  issues:
+    types: [labeled]
+permissions:
+  contents: write
+  issues: write
+jobs:
+  publish:
+    # Only when a maintainer (label needs triage rights) adds `approved` to a `submission` issue.
+    if: github.event.label.name == 'approved' && contains(github.event.issue.labels.*.name, 'submission')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: node scripts/apply-submission.mjs   # reads the issue body from GITHUB_EVENT_PATH as data
+      - run: node scripts/build.mjs
+      - name: Commit and close issue
+        env: { GH_TOKEN: '${{ github.token }}', ISSUE: '${{ github.event.issue.number }}' }
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data docs/data
+          git commit -m "feat: add community activity from issue #$ISSUE"
+          git push
+          gh issue close "$ISSUE" --comment "Published. Thank you!"

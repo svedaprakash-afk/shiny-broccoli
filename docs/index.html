@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kids Activities Switzerland</title>
+<meta name="description" content="Open directory of activities for children across Switzerland.">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23d52b1e'/%3E%3Cpath d='M13 6h6v7h7v6h-7v7h-6v-7H6v-6h7z' fill='%23fff'/%3E%3C/svg%3E">
+</head>
+<body>
+<header>
+  <div class="logo" aria-hidden="true"></div>
+  <h1 id="title">Kids Activities Switzerland</h1>
+  <div class="top">
+    <label class="muted" for="ui-lang" hidden>Language</label>
+    <select id="ui-lang" aria-label="Interface language"><option value="de">DE</option><option value="fr">FR</option><option value="it">IT</option><option value="en">EN</option></select>
+    <button id="add" data-t="add">Add an activity</button>
+  </div>
+</header>
+<main>
+  <aside aria-label="Filters">
+    <input id="q" type="search" placeholder="Search…" aria-label="Search">
+    <fieldset><legend data-t="location">Location</legend>
+      <div class="row"><button id="myloc" class="ghost" data-t="myloc">My location</button>
+      <select id="city" aria-label="City"></select></div>
+      <div class="row" style="margin-top:8px"><label for="radius"><span data-t="radius">Radius</span>: <b id="radius-out"></b></label>
+      <input id="radius" type="range" min="0" max="100" step="5" value="0" style="width:100%"></div>
+    </fieldset>
+    <fieldset><legend data-t="cost">Cost</legend><div id="f-cost" class="chips"></div></fieldset>
+    <fieldset><legend data-t="kind">Type</legend><div id="f-kind" class="chips"></div></fieldset>
+    <fieldset><legend data-t="difficulty">Difficulty</legend><div id="f-diff" class="chips"></div></fieldset>
+    <fieldset><legend data-t="language">Language</legend><div id="f-lang" class="chips"></div></fieldset>
+  </aside>
+  <section aria-live="polite">
+    <p class="muted" id="count"></p>
+    <div id="list"></div>
+    <button id="more" class="ghost" hidden>Show more</button>
+  </section>
+</main>
+<footer class="muted"><span id="source-note"></span> <a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors (ODbL)</a></footer>
+
+<dialog id="dlg">
+  <form id="sform" method="dialog">
+    <h2 data-t="submitTitle">Suggest an activity</h2>
+    <label><span data-t="name">Name</span><input name="name" required maxlength="120"></label>
+    <label><span data-t="desc">Description</span><textarea name="description" maxlength="400" rows="3"></textarea></label>
+    <div class="row">
+      <label><span data-t="category">Category</span><select name="category"></select></label>
+      <label><span data-t="cost">Cost</span><select name="cost"><option value="free">Free</option><option value="paid">Paid</option><option value="unknown">?</option></select></label>
+      <label><span data-t="kind">Type</span><select name="kind"><option value="physical">Physical</option><option value="mental">Mental</option><option value="both">Both</option></select></label>
+      <label><span data-t="difficulty">Difficulty</span><select name="difficulty"><option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option><option value="unknown">?</option></select></label>
+    </div>
+    <label><span data-t="address">City</span><input name="city" maxlength="60"></label>
+    <label><span data-t="coords">Coordinates (lat, lon)</span><input name="coords" required placeholder="47.37690, 8.54170"></label>
+    <button type="button" id="here" class="ghost" data-t="pickhere">Use my location</button>
+    <label><span data-t="website">Website</span><input name="url" type="url" maxlength="500"></label>
+    <div class="row"><span data-t="ages">Age from / to</span><input name="minAge" type="number" min="0" max="18" style="width:5rem"><input name="maxAge" type="number" min="0" max="18" style="width:5rem"></div>
+    <fieldset><legend data-t="langs">Languages</legend><div class="chips">
+      <label><input type="checkbox" name="languages" value="de"><span>DE</span></label><label><input type="checkbox" name="languages" value="fr"><span>FR</span></label>
+      <label><input type="checkbox" name="languages" value="it"><span>IT</span></label><label><input type="checkbox" name="languages" value="en"><span>EN</span></label></div></fieldset>
+    <p class="muted" id="submitNote"></p>
+    <div class="row"><button type="submit" data-t="send">Submit via GitHub</button><button type="button" id="cancel" class="ghost" data-t="cancel">Cancel</button></div>
+  </form>
+</dialog>
+<script type="module" src="app.js"></script>
+</body>
+</html>

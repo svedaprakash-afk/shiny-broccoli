@@ -22,7 +22,9 @@ export function pickImage(page, why = {}) {
     credit: strip(m.Artist?.value).slice(0, 120) || 'Unknown author (Wikimedia Commons)',
     source: ii.descriptionurl,
   });
-  return img || no('failed-validation');
+  if (img) return img;
+  let host = '?'; try { const u = new URL(ii.thumburl); host = u.protocol + '//' + u.hostname; } catch {}
+  return no(`failed-validation host=${host} credit=${strip(m.Artist?.value).length > 0} licence="${license}"`);
 }
 
 // ---- Wikidata places with a photo (zoos, amusement parks, aquariums) matched to our entries by name AND location ----

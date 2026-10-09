@@ -29,7 +29,7 @@ Every picture shown has a visible credit line (photographer, licence, link to th
 - a credit exists;
 - it comes from an allow-listed host (Wikimedia) or is a photo copied into this repo from an approved submission.
 
-Sources: `scripts/sources/commons.mjs` follows OpenStreetMap `wikimedia_commons` / `image` / `wikidata` tags to Wikimedia Commons files, reads their licence and author, and **hot-links** the Commons thumbnail (nothing is copied). Coverage is low, because few OSM objects carry such a tag.
+Sources: `scripts/sources/commons.mjs` follows OpenStreetMap `wikimedia_commons` / `image` / `wikidata` tags to Wikimedia Commons files, reads their licence and author, and **hot-links** the Commons thumbnail (nothing is copied). A second route looks up Swiss zoos, amusement parks and aquariums on Wikidata and attaches a photo only when the **name and the location (within 500 m)** both match one of our entries. **Current coverage is small: 26 pictures out of ~2,370 activities, almost all zoos.** Playgrounds, pools and most museums have no openly licensed photo to find; community photo submissions are the way to grow this. `node scripts/sources/commons.mjs` logs why files are rejected.
 City open-data photos are **not** used: the opendata.swiss terms cover the dataset, but I could not verify they cover the linked photo files, and the files are several MB each.
 Open-licence images still have conditions (credit, share-alike for CC BY-SA). This is not legal advice; a maintainer should review before commercial use.
 

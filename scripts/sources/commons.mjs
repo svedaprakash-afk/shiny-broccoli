@@ -21,6 +21,43 @@ export function pickImage(page) {
   });
 }
 
+// ---- Wikidata places with a photo (zoos, amusement parks, aquariums) matched to our entries by name AND location ----
+const norm = t => String(t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, ' ');
+const STOP = new Set(['zoo', 'park', 'der', 'die', 'das', 'the', 'les', 'des', 'del', 'dei', 'und', 'and', 'von', 'zur', 'museum', 'parc', 'parco', 'bad', 'schwimmbad']);
+const tokens = t => new Set(norm(t).split(/\s+/).filter(w => w.length >= 3 && !STOP.has(w)));
+const km = (a, b) => { const r = x => x * Math.PI / 180, h = Math.sin(r(b.lat - a.lat) / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(r(b.lon - a.lon) / 2) ** 2; return 12742 * Math.asin(Math.sqrt(h)); };
+
+/** Pairs a Wikidata place with an activity only if it is within 500 m AND their distinctive name words overlap. Exported for tests. */
+export function matchCandidates(acts, cands) {
+  const out = {};
+  for (const c of cands) {
+    const ct = tokens(c.name);
+    if (!ct.size) continue;
+    for (const a of acts) {
+      if (out[a.id] || km(a, c) > 0.5) continue;
+      const at = tokens(a.name), shared = [...ct].filter(w => at.has(w)).length;
+      if (shared && shared >= Math.min(ct.size, at.size) / 2) out[a.id] = c.file;
+    }
+  }
+  return out;
+}
+
+/** Wikidata items' P18 value arrives as a Special:FilePath URL. */
+export const fileFromUrl = u => { const m = String(u).match(/Special:FilePath\/(.+)$/); return m ? 'File:' + decodeURIComponent(m[1]).replace(/_/g, ' ') : null; };
+
+async function wikidataPlaces() {
+  const q = `SELECT ?iLabel ?coord ?img WHERE { VALUES ?c { wd:Q43501 wd:Q194195 wd:Q2281788 }
+    ?i wdt:P31 ?c; wdt:P17 wd:Q39; wdt:P625 ?coord; wdt:P18 ?img. SERVICE wikibase:label { bd:serviceParam wikibase:language "de,fr,it,en". } }`;
+  try {
+    const r = await fetch('https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent(q), { headers: { ...UA, Accept: 'application/sparql-results+json' }, signal: AbortSignal.timeout(90000) });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return (await r.json()).results.bindings.map(b => {
+      const m = b.coord.value.match(/Point\(([-\d.]+) ([-\d.]+)\)/);
+      return m && { name: b.iLabel.value, lon: +m[1], lat: +m[2], file: fileFromUrl(b.img.value) };
+    }).filter(c => c && c.file);
+  } catch (e) { console.warn(`wikidata places failed: ${e.message}`); return []; }
+}
+
 async function json(url) {
   const r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(30000) });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -64,7 +101,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const wdIds = [...new Set(Object.values(refs).map(r => r.wd).filter(Boolean))];
   const wdFiles = await wikidataFiles(wdIds);
   const titleOf = r => r.file || (r.wd && wdFiles[r.wd]);
-  const titles = [...new Set(Object.values(refs).map(titleOf).filter(Boolean))];
+  // Second route: Wikidata places matched to our entries by name and proximity.
+  const acts = JSON.parse(await readFile('docs/data/activities.json', 'utf8').catch(() => '{"activities":[]}')).activities;
+  const places = await wikidataPlaces();
+  const matched = matchCandidates(acts, places);
+  console.log(`wikidata places: ${places.length} with a photo, ${Object.keys(matched).length} matched to our entries`);
+  const titles = [...new Set([...Object.values(refs).map(titleOf), ...Object.values(matched)].filter(Boolean))];
   const imgs = await commonsImages(titles);
   const out = { ...prev };
   let n = 0;
@@ -72,6 +114,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const t = titleOf(r), img = t && imgs[t];
     if (img) { out[id] = [img]; n++; }
   }
+  for (const [id, title] of Object.entries(matched)) if (imgs[title] && !out[id]) { out[id] = [imgs[title]]; n++; }
   await mkdir('data', { recursive: true });
   await writeFile('data/images.json', JSON.stringify(out));
   console.log(`commons: ${titles.length} files looked up for ${Object.keys(refs).length} refs; ${n} openly licensed images attached`);

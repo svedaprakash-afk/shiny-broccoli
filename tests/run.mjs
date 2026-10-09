@@ -52,7 +52,7 @@ assert.equal(robotsAllows('User-agent: *\nDisallow: /private\n', '/events'), tru
 // ---- fee, sport, address, images ----
 import { normaliseImage } from '../scripts/lib/schema.mjs';
 import { sportOf, feeOf, refsOf } from '../scripts/sources/osm.mjs';
-import { pickImage } from '../scripts/sources/commons.mjs';
+import { pickImage, matchCandidates, fileFromUrl } from '../scripts/sources/commons.mjs';
 import { parseResults } from '../scripts/lib/geocode.mjs';
 import { extractAttachmentUrls, sniff, sanitize } from '../scripts/lib/images.mjs';
 
@@ -95,6 +95,13 @@ assert.equal(pickImage(page('CC BY-NC 2.0')), null); assert.equal(pickImage(page
 assert.equal(pickImage(page('CC BY 4.0', { Restrictions: { value: 'personality' } })), null);
 assert.equal(pickImage(page('CC BY 4.0', { NonFree: { value: 'true' } })), null);
 assert.equal(pickImage({ title: 'File:Missing.jpg', missing: '' }), null);
+
+// Wikidata place -> activity matching needs BOTH proximity and a shared distinctive name word
+const acts = [{ id: 'a1', name: 'Zoo Basel', lat: 47.547, lon: 7.578 }, { id: 'a2', name: 'Zoo Zürich', lat: 47.3855, lon: 8.5744 }, { id: 'a3', name: 'Kinderspielplatz Nord', lat: 47.5471, lon: 7.5781 }];
+const m = matchCandidates(acts, [{ name: 'Zoologischer Garten Basel', lat: 47.5469, lon: 7.5779, file: 'File:Basel.jpg' },
+  { name: 'Zoo Zürich', lat: 47.20, lon: 8.50, file: 'File:Far.jpg' }]);                       // right name, 20 km away: rejected
+assert.deepEqual(m, { a1: 'File:Basel.jpg' });                                              // shared word "basel"; neighbour a3 not matched
+assert.equal(fileFromUrl('http://commons.wikimedia.org/wiki/Special:FilePath/Zoo%20Basel_1.jpg'), 'File:Zoo Basel 1.jpg');
 
 // geocoder response (shape verified against the live API on a GitHub runner)
 const gr = parseResults({ results: [{ attrs: { label: 'Bahnhofstrasse 10 <b>8001 Zürich</b>', lat: 47.368183, lon: 8.540021 } }, { attrs: { label: 'x' } }] });

@@ -2,20 +2,26 @@
 import { writeFile, mkdir } from 'node:fs/promises';
 import { normalise } from '../lib/schema.mjs';
 
-const ENDPOINT = process.env.OVERPASS_URL || 'https://overpass-api.de/api/interpreter';
-const QUERY = `[out:json][timeout:180];
+const ENDPOINTS = (process.env.OVERPASS_URL ? [process.env.OVERPASS_URL] : [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter',
+]);
+// One small query per selector: the public servers 504 on a single large union.
+const SELECTORS = [
+  '["leisure"="playground"]["name"]',
+  '["tourism"="zoo"]',
+  '["tourism"="theme_park"]',
+  '["leisure"="water_park"]',
+  '["leisure"="trampoline_park"]',
+  '["leisure"="miniature_golf"]',
+  '["tourism"="museum"]["museum"="children"]',
+  '["tourism"="museum"]["name"~"Kinder|enfants|bambini|children",i]',
+  '["leisure"="swimming_pool"]["access"!~"private|customers"]["name"]["fee"]',
+];
+const query = sel => `[out:json][timeout:120];
 area["ISO3166-1"="CH"][admin_level=2]->.ch;
-(
-  nwr["leisure"="playground"]["name"](area.ch);
-  nwr["tourism"="zoo"](area.ch);
-  nwr["tourism"="theme_park"](area.ch);
-  nwr["leisure"="water_park"](area.ch);
-  nwr["leisure"="trampoline_park"](area.ch);
-  nwr["leisure"="miniature_golf"](area.ch);
-  nwr["tourism"="museum"]["museum"="children"](area.ch);
-  nwr["tourism"="museum"]["name"~"Kinder|enfants|bambini|children",i](area.ch);
-  nwr["leisure"="swimming_pool"]["access"!~"private|customers"]["name"]["fee"](area.ch);
-);
+nwr${sel}(area.ch);
 out center tags;`;
 
 const MAP = [
@@ -42,13 +48,32 @@ export function convert(el) {
   }, 'osm');
 }
 
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function run(sel) {
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const url = ENDPOINTS[attempt % ENDPOINTS.length];
+    try {
+      const res = await fetch(url, { method: 'POST', body: new URLSearchParams({ data: query(sel) }),
+        headers: { 'User-Agent': 'swiss-kids-activities (github.com/svedaprakash-afk/shiny-broccoli)' } });
+      if (res.ok) return (await res.json()).elements;
+      console.warn(`osm ${sel}: ${url} -> HTTP ${res.status}`);
+    } catch (e) { console.warn(`osm ${sel}: ${url} -> ${e.message}`); }
+    await sleep(3000 * (attempt + 1));
+  }
+  return null;
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const res = await fetch(ENDPOINT, { method: 'POST', body: new URLSearchParams({ data: QUERY }),
-    headers: { 'User-Agent': 'swiss-kids-activities (github.com/svedaprakash-afk/shiny-broccoli)' } });
-  if (!res.ok) throw new Error(`Overpass ${res.status}`);
-  const { elements } = await res.json();
-  const items = elements.map(convert).filter(Boolean);
+  const items = new Map(); let failed = 0;
+  for (const sel of SELECTORS) {
+    const els = await run(sel);
+    if (!els) { failed++; continue; }
+    for (const el of els) { const a = convert(el); if (a) items.set(a.id, a); }
+    console.log(`osm ${sel}: ${els.length} elements`);
+    await sleep(1500);
+  }
+  if (!items.size) throw new Error('osm: no data retrieved');
   await mkdir('data/sources', { recursive: true });
-  await writeFile('data/sources/osm.json', JSON.stringify(items));
-  console.log(`osm: ${items.length} activities`);
+  await writeFile('data/sources/osm.json', JSON.stringify([...items.values()]));
+  console.log(`osm: ${items.size} activities (${failed} of ${SELECTORS.length} queries failed)`);
 }

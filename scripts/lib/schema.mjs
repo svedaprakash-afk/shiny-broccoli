@@ -9,7 +9,7 @@ export const SPORTS = ['football','basketball','swimming','climbing','skating','
 // Only openly licensed images are ever shown. NC/ND licences are rejected (we resize and show on a site that may be monetised).
 export const LICENSE_RE = /^(CC0( 1\.0)?|CC BY(-SA)? [1-4]\.\d|Public domain|PDM 1\.0|Open Government Data[\w ,()-]*)$/i;
 // Hosts we accept for hot-linked images. Community photos are copied into the repo (relative path) instead.
-export const IMAGE_HOSTS = ['upload.wikimedia.org'];
+export const IMAGE_HOSTS = ['upload.wikimedia.org', 'thumb.wikimedia.org'];   // Wikimedia's image and thumbnail servers
 const COMMUNITY_IMG = /^img\/community\/[\w.-]{1,80}\.(jpg|png)$/;
 
 const pick = (v, allowed, dflt) => (allowed.includes(v) ? v : dflt);

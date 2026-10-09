@@ -71,6 +71,7 @@ assert.equal(normaliseImage({ ...good, license: 'All rights reserved' }), null);
 assert.equal(normaliseImage({ ...good, credit: '' }), null);                         // no credit, no image
 assert.equal(normaliseImage({ ...good, url: 'https://evil.example/a.jpg' }), null);  // host not allow-listed
 assert.equal(normaliseImage({ ...good, url: 'http://upload.wikimedia.org/a.jpg' }), null);
+assert.ok(normaliseImage({ ...good, url: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ab/X.jpg/640px-X.jpg' }));   // Commons thumbnails come from this host
 assert.equal(normaliseImage({ ...good, url: 'javascript:alert(1)' }), null);
 assert.ok(normaliseImage({ ...good, url: 'img/community/12-1.jpg' }));
 assert.equal(normaliseImage({ ...good, url: 'img/community/../../etc/passwd.jpg' }), null);

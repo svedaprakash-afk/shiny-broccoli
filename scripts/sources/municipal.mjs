@@ -2,7 +2,7 @@
 // and only via structured data (schema.org JSON-LD "Event"/"Place"). No HTML-selector scraping:
 // it is brittle, and many sites forbid it. Add a site only after checking its terms and robots.txt.
 // Entry: { "id": "...", "url": "...", "defaults": { "city": "Bern", "languages": ["de"], "cost": "free" } }
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { normalise } from '../lib/schema.mjs';
 
 export function extractJsonLd(html) {
@@ -35,6 +35,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       all.push(...convert(e, await res.text()));
     } catch (err) { console.warn(`municipal: skipped ${e.id}: ${err.message}`); }
   }
+  await mkdir('data/sources', { recursive: true });
   await writeFile('data/sources/municipal.json', JSON.stringify(all));
   console.log(`municipal: ${all.length} activities`);
 }

@@ -1,7 +1,7 @@
 // opendata.swiss (CKAN). Datasets are heterogeneous, so we only ingest datasets that are
 // explicitly allow-listed in data/opendata-resources.json with a column mapping.
 // Entry: { "name": "...", "url": "<csv/json url>", "format": "csv|geojson", "map": { "name": "COL", "lat": "COL", "lon": "COL" }, "defaults": { "category": "playground", "cost": "free" } }
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { normalise } from '../lib/schema.mjs';
 
 export function parseCsv(text) {
@@ -41,6 +41,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       all.push(...convert(e, await res.text()));
     } catch (err) { console.warn(`opendata: skipped ${e.id}: ${err.message}`); }
   }
+  await mkdir('data/sources', { recursive: true });
   await writeFile('data/sources/opendata-swiss.json', JSON.stringify(all));
   console.log(`opendata.swiss: ${all.length} activities from ${entries.length} datasets`);
 }

@@ -1,5 +1,5 @@
 // OpenStreetMap via Overpass (ODbL). Attribution required: © OpenStreetMap contributors.
-import { writeFile } from 'node:fs/promises';
+import { writeFile, mkdir } from 'node:fs/promises';
 import { normalise } from '../lib/schema.mjs';
 
 const ENDPOINT = process.env.OVERPASS_URL || 'https://overpass-api.de/api/interpreter';
@@ -48,6 +48,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   if (!res.ok) throw new Error(`Overpass ${res.status}`);
   const { elements } = await res.json();
   const items = elements.map(convert).filter(Boolean);
+  await mkdir('data/sources', { recursive: true });
   await writeFile('data/sources/osm.json', JSON.stringify(items));
   console.log(`osm: ${items.length} activities`);
 }

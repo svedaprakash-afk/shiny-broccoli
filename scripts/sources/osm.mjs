@@ -19,10 +19,15 @@ const SELECTORS = [
   '["tourism"="museum"]["name"~"Kinder|enfants|bambini|children",i]',
   '["leisure"="swimming_pool"]["access"!~"private|customers"]["name"]["fee"]',
 ];
-const query = sel => `[out:json][timeout:120];
+const query = (sel, bbox) => `[out:json][timeout:120];
 area["ISO3166-1"="CH"][admin_level=2]->.ch;
-nwr${sel}(area.ch);
+nwr${sel}(area.ch)${bbox ? `(${bbox})` : ''};
 out center tags;`;
+
+// Heavy selectors are split into a 3x3 grid of boxes (still clipped to Switzerland by area.ch).
+const grid = () => { const t = []; for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++)
+  t.push([45.8 + i * 0.7, 5.9 + j * 1.55, 45.8 + (i + 1) * 0.7, 5.9 + (j + 1) * 1.55].map(x => x.toFixed(3)).join(',')); return t; };
+const TILED = new Set(['["leisure"="playground"]["name"]']);
 
 const MAP = [
   [t => t.leisure === 'playground', { category: 'playground', kind: 'physical', difficulty: 'easy', free: true }],
@@ -49,11 +54,11 @@ export function convert(el) {
 }
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-async function run(sel) {
+async function run(sel, bbox) {
   for (let attempt = 0; attempt < 6; attempt++) {
     const url = ENDPOINTS[attempt % ENDPOINTS.length];
     try {
-      const res = await fetch(url, { method: 'POST', body: new URLSearchParams({ data: query(sel) }),
+      const res = await fetch(url, { method: 'POST', body: new URLSearchParams({ data: query(sel, bbox) }),
         headers: { 'User-Agent': 'swiss-kids-activities (github.com/svedaprakash-afk/shiny-broccoli)' } });
       if (res.ok) return (await res.json()).elements;
       console.warn(`osm ${sel}: ${url} -> HTTP ${res.status}`);
@@ -66,8 +71,12 @@ async function run(sel) {
 if (import.meta.url === `file://${process.argv[1]}`) {
   const items = new Map(); let failed = 0;
   for (const sel of SELECTORS) {
-    const els = await run(sel);
-    if (!els) { failed++; continue; }
+    let els = [];
+    for (const bbox of TILED.has(sel) ? grid() : [undefined]) {
+      const r = await run(sel, bbox);
+      if (!r) { failed++; continue; }
+      els.push(...r); if (bbox) await sleep(1000);
+    }
     for (const el of els) { const a = convert(el); if (a) items.set(a.id, a); }
     console.log(`osm ${sel}: ${els.length} elements`);
     await sleep(1500);
@@ -75,5 +84,5 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   if (!items.size) throw new Error('osm: no data retrieved');
   await mkdir('data/sources', { recursive: true });
   await writeFile('data/sources/osm.json', JSON.stringify([...items.values()]));
-  console.log(`osm: ${items.size} activities (${failed} of ${SELECTORS.length} queries failed)`);
+  console.log(`osm: ${items.size} activities (${failed} queries failed)`);
 }

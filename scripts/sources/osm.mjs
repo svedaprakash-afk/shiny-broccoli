@@ -1,5 +1,5 @@
 // OpenStreetMap via Overpass (ODbL). Attribution required: © OpenStreetMap contributors.
-import { writeFile, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { normalise } from '../lib/schema.mjs';
 
 const ENDPOINTS = (process.env.OVERPASS_URL ? [process.env.OVERPASS_URL] : [
@@ -82,6 +82,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     await sleep(1500);
   }
   if (!items.size) throw new Error('osm: no data retrieved');
+  if (failed) {
+    // Overpass is flaky: never let a partial run shrink the dataset. Keep previously fetched items we did not re-fetch.
+    const prev = JSON.parse(await readFile('data/sources/osm.json', 'utf8').catch(() => '[]'));
+    for (const a of prev) if (!items.has(a.id)) items.set(a.id, a);
+    console.warn(`osm: ${failed} queries failed; merged with previous data`);
+  }
   await mkdir('data/sources', { recursive: true });
   await writeFile('data/sources/osm.json', JSON.stringify([...items.values()]));
   console.log(`osm: ${items.size} activities (${failed} queries failed)`);

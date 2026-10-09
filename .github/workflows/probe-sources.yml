@@ -1,5 +1,7 @@
 name: Probe sources
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs: { script: { default: probe-sources.mjs } }
 permissions: { contents: read }
 jobs:
   probe:
@@ -8,4 +10,5 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
-      - run: node scripts/probe-sources.mjs
+      - run: node "scripts/$SCRIPT"
+        env: { SCRIPT: '${{ inputs.script }}' }

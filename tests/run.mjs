@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { normalise } from '../scripts/lib/schema.mjs';
 import { convert as osm } from '../scripts/sources/osm.mjs';
 import { parseCsv, convert as od } from '../scripts/sources/opendata-swiss.mjs';
-import { convert as mun } from '../scripts/sources/municipal.mjs';
+import { convert as mun, robotsAllows } from '../scripts/sources/municipal.mjs';
 
 // schema rejects out-of-Switzerland and unnamed, strips markup, blocks javascript: URLs
 assert.equal(normalise({ name: 'x', lat: 48.8, lon: 2.3 }, 't'), null);
@@ -46,4 +46,6 @@ assert.equal(beOut.lat, 46.95783); assert.equal(beOut.url, '');
 // municipal JSON-LD
 const html = '<script type="application/ld+json">{"@type":"Event","name":"Kindertheater","location":{"geo":{"latitude":46.95,"longitude":7.45}}}</script>';
 assert.equal(mun({ id: 'b', url: 'https://x', defaults: { city: 'Bern' } }, html)[0].city, 'Bern');
+assert.equal(robotsAllows('User-agent: *\nDisallow: /private\n', '/private/x'), false);
+assert.equal(robotsAllows('User-agent: *\nDisallow: /private\n', '/events'), true);
 console.log('all tests passed');

@@ -1,5 +1,6 @@
 // opendata.swiss (CKAN). Datasets are heterogeneous, so we only ingest datasets that are
 // explicitly allow-listed in data/opendata-resources.json with a column mapping.
+// Optional "filter": { "COL": "VALUE" } keeps only matching records.
 // Entry: { "name": "...", "url": "<csv/json url>", "format": "csv|geojson", "map": { "name": "COL", "lat": "COL", "lon": "COL" }, "defaults": { "category": "playground", "cost": "free" } }
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { normalise } from '../lib/schema.mjs';
@@ -24,7 +25,8 @@ export function convert(entry, text) {
     ? JSON.parse(text).features.map(f => ({ ...f.properties, __lon: f.geometry?.coordinates?.[0], __lat: f.geometry?.coordinates?.[1] }))
     : parseCsv(text);
   const m = entry.map;
-  return recs.map((r, i) => normalise({
+  const keep = r => Object.entries(entry.filter || {}).every(([k, v]) => String(r[k]) === v);
+  return recs.filter(keep).map((r, i) => normalise({
     ...entry.defaults,
     id: `od-${entry.id}-${i}`,
     name: r[m.name], city: m.city && r[m.city], url: m.url && r[m.url],

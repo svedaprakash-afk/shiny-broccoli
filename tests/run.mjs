@@ -25,6 +25,11 @@ assert.equal(od(e, 'n,la,lo\nPark,47.1,8.2\nBad,10,10\n').length, 1);
 const g = { id: 'g', format: 'geojson', map: { name: 'name', lat: '__lat', lon: '__lon' }, defaults: {} };
 assert.equal(od(g, JSON.stringify({ features: [{ properties: { name: 'G' }, geometry: { coordinates: [8.2, 47.1] } }] }))[0].lat, 47.1);
 
+const gf = { id: 'f', format: 'geojson', filter: { kid: 'TRUE' }, map: { name: 'name', lat: '__lat', lon: '__lon' }, defaults: {} };
+assert.equal(od(gf, JSON.stringify({ features: [
+  { properties: { name: 'A', kid: 'TRUE' }, geometry: { coordinates: [8.2, 47.1] } },
+  { properties: { name: 'B', kid: 'FALSE' }, geometry: { coordinates: [8.2, 47.1] } }] })).length, 1);
+
 // municipal JSON-LD
 const html = '<script type="application/ld+json">{"@type":"Event","name":"Kindertheater","location":{"geo":{"latitude":46.95,"longitude":7.45}}}</script>';
 assert.equal(mun({ id: 'b', url: 'https://x', defaults: { city: 'Bern' } }, html)[0].city, 'Bern');

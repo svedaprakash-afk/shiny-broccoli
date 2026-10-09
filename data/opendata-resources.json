@@ -1,1 +1,19 @@
-[]
+[
+  {
+    "id": "bs-spielplaetze",
+    "name": "Spielen in Basel: Spielplätze (Kanton Basel-Stadt)",
+    "url": "https://data.bs.ch/api/v2/catalog/datasets/100462/exports/geojson",
+    "format": "geojson",
+    "map": { "name": "spielplatz_name", "lat": "__lat", "lon": "__lon" },
+    "defaults": { "category": "playground", "cost": "free", "kind": "physical", "difficulty": "easy", "city": "Basel", "languages": [] }
+  },
+  {
+    "id": "bs-kinder-jugend",
+    "name": "Kinder- und Jugendangebote (Kanton Basel-Stadt)",
+    "url": "https://data.bs.ch/api/v2/catalog/datasets/100024/exports/geojson",
+    "format": "geojson",
+    "filter": { "ki_angebot": "TRUE" },
+    "map": { "name": "angebot", "lat": "__lat", "lon": "__lon", "city": "ort" },
+    "defaults": { "category": "workshop", "cost": "unknown", "kind": "both", "maxAge": 12, "languages": ["de"] }
+  }
+]

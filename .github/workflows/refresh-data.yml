@@ -20,6 +20,8 @@ jobs:
         continue-on-error: true
       - run: node scripts/sources/municipal.mjs
         continue-on-error: true
+      - run: node scripts/sources/commons.mjs
+        continue-on-error: true
       - run: node scripts/build.mjs
       - name: Commit changes
         run: |

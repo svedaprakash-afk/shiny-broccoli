@@ -48,4 +48,74 @@ const html = '<script type="application/ld+json">{"@type":"Event","name":"Kinder
 assert.equal(mun({ id: 'b', url: 'https://x', defaults: { city: 'Bern' } }, html)[0].city, 'Bern');
 assert.equal(robotsAllows('User-agent: *\nDisallow: /private\n', '/private/x'), false);
 assert.equal(robotsAllows('User-agent: *\nDisallow: /private\n', '/events'), true);
+
+// ---- fee, sport, address, images ----
+import { normaliseImage } from '../scripts/lib/schema.mjs';
+import { sportOf, feeOf, refsOf } from '../scripts/sources/osm.mjs';
+import { pickImage } from '../scripts/sources/commons.mjs';
+import { parseResults } from '../scripts/lib/geocode.mjs';
+import { extractAttachmentUrls, sniff, sanitize } from '../scripts/lib/images.mjs';
+
+const paid = normalise({ name: 'Pool', lat: 47, lon: 8, cost: 'paid', feeMin: 5, feeMax: 12.5, feeNote: 'Kids free', sport: 'swimming', address: 'Seestrasse 1' }, 't');
+assert.equal(paid.feeMin, 5); assert.equal(paid.feeMax, 12.5); assert.equal(paid.sport, 'swimming'); assert.equal(paid.address, 'Seestrasse 1');
+assert.equal(normalise({ name: 'F', lat: 47, lon: 8, cost: 'free', feeMin: 5 }, 't').feeMin, undefined);           // free => no fee
+assert.equal(normalise({ name: 'F', lat: 47, lon: 8, cost: 'paid', feeMin: 9, feeMax: 3 }, 't').feeMax, 9);       // max < min => collapsed
+assert.equal(normalise({ name: 'F', lat: 47, lon: 8, cost: 'paid', feeMin: -4 }, 't').feeMin, undefined);          // negative rejected
+assert.equal(normalise({ name: 'F', lat: 47, lon: 8, sport: 'curling' }, 't').sport, undefined);                   // unknown sport dropped
+
+// images: licence + credit + host are all mandatory
+const good = { url: 'https://upload.wikimedia.org/x/640px-a.jpg', credit: 'Jane Doe', license: 'CC BY-SA 4.0', source: 'https://commons.wikimedia.org/wiki/File:a.jpg' };
+assert.ok(normaliseImage(good));
+assert.equal(normaliseImage({ ...good, license: 'CC BY-NC 4.0' }), null);          // non-commercial rejected
+assert.equal(normaliseImage({ ...good, license: 'All rights reserved' }), null);
+assert.equal(normaliseImage({ ...good, credit: '' }), null);                         // no credit, no image
+assert.equal(normaliseImage({ ...good, url: 'https://evil.example/a.jpg' }), null);  // host not allow-listed
+assert.equal(normaliseImage({ ...good, url: 'http://upload.wikimedia.org/a.jpg' }), null);
+assert.equal(normaliseImage({ ...good, url: 'javascript:alert(1)' }), null);
+assert.ok(normaliseImage({ ...good, url: 'img/community/12-1.jpg' }));
+assert.equal(normaliseImage({ ...good, url: 'img/community/../../etc/passwd.jpg' }), null);
+assert.equal(normalise({ name: 'I', lat: 47, lon: 8, images: [good, { ...good, license: 'nope' }] }, 't').images.length, 1);
+
+// OSM
+assert.equal(sportOf('soccer;basketball'), 'football'); assert.equal(sportOf('curling'), undefined);
+assert.deepEqual(feeOf('CHF 10'), { feeMin: 10, feeMax: 10 }); assert.deepEqual(feeOf('5-12 CHF'), { feeMin: 5, feeMax: 12 });
+assert.deepEqual(feeOf('10 EUR'), {}); assert.deepEqual(feeOf(undefined), {});
+assert.deepEqual(refsOf({ tags: { wikimedia_commons: 'File:Zoo_Basel.jpg', wikidata: 'Q123' } }), { file: 'File:Zoo Basel.jpg', wd: 'Q123' });
+assert.deepEqual(refsOf({ tags: { wikimedia_commons: 'Category:Zoo Basel' } }), {});     // categories are ambiguous: not used
+const tr = osm({ type: 'node', id: 9, lat: 47.1, lon: 8.1, tags: { leisure: 'trampoline_park', name: 'Jump', fee: 'yes', charge: 'CHF 18', 'addr:street': 'Hauptstr.', 'addr:housenumber': '4' } });
+assert.equal(tr.sport, 'trampoline'); assert.equal(tr.feeMin, 18); assert.equal(tr.address, 'Hauptstr. 4');
+
+// Commons: only open licences, never non-free/restricted
+const page = (lic, extra = {}) => ({ title: 'File:A.jpg', imageinfo: [{ thumburl: 'https://upload.wikimedia.org/t/640px-A.jpg', descriptionurl: 'https://commons.wikimedia.org/wiki/File:A.jpg',
+  extmetadata: { Artist: { value: '<a href="//x">Anna &amp; Co</a>' }, LicenseShortName: { value: lic }, ...extra } }] });
+assert.equal(pickImage(page('CC BY-SA 4.0')).credit, 'Anna & Co');
+assert.equal(pickImage(page('CC BY-SA 3.0 de')).license, 'CC BY-SA 3.0');
+assert.ok(pickImage(page('Public domain')));
+assert.equal(pickImage(page('CC BY-NC 2.0')), null); assert.equal(pickImage(page('CC BY-ND 2.0')), null);
+assert.equal(pickImage(page('CC BY 4.0', { Restrictions: { value: 'personality' } })), null);
+assert.equal(pickImage(page('CC BY 4.0', { NonFree: { value: 'true' } })), null);
+assert.equal(pickImage({ title: 'File:Missing.jpg', missing: '' }), null);
+
+// geocoder response (shape verified against the live API on a GitHub runner)
+const gr = parseResults({ results: [{ attrs: { label: 'Bahnhofstrasse 10 <b>8001 Zürich</b>', lat: 47.368183, lon: 8.540021 } }, { attrs: { label: 'x' } }] });
+assert.equal(gr.length, 1); assert.equal(gr[0].label, 'Bahnhofstrasse 10 8001 Zürich'); assert.equal(gr[0].lat, 47.368183);
+
+// photo handling
+const ok = 'https://github.com/user-attachments/assets/123e4567-e89b-12d3-a456-426614174000';
+assert.deepEqual(extractAttachmentUrls(`![a](${ok})\n![b](https://evil.example/x.png) <img src="https://user-images.githubusercontent.com/1/a.jpg">`), [ok, 'https://user-images.githubusercontent.com/1/a.jpg']);
+assert.equal(extractAttachmentUrls('https://github.com/user-attachments/assets/not-a-uuid').length, 0);
+assert.equal(sniff(Buffer.from('<html>not an image</html>')), null);
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+let haveIM = true; try { execFileSync('convert', ['-version'], { stdio: 'ignore' }); } catch { haveIM = false; }
+if (haveIM) {
+  const d = mkdtempSync(tmpdir() + '/t-'), src = d + '/a.jpg';
+  execFileSync('convert', ['-size', '3000x2000', 'xc:red', '-set', 'comment', 'GPS-SECRET-47.37,8.54', '-set', 'exif:GPSLatitude', '47/1', src]);
+  const raw = readFileSync(src); assert.ok(raw.includes('GPS-SECRET'));
+  const clean = await sanitize(raw, 'jpg');
+  assert.ok(!clean.includes('GPS-SECRET'), 'metadata must be stripped');
+  assert.equal(sniff(clean), 'jpg'); assert.ok(clean.length < raw.length);
+  await assert.rejects(() => sanitize(Buffer.from('<?php echo 1; ?>'), 'jpg'));  // non-image never published
+} else console.warn('ImageMagick missing: skipped sanitize test');
 console.log('all tests passed');

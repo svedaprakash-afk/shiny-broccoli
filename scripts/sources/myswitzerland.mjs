@@ -1,6 +1,6 @@
 // MySwitzerland Tourism Data Hub (opendata.myswitzerland.io). Requires a free API key in
 // the MYSWITZERLAND_API_KEY secret; without it this source is skipped, not faked.
-import { writeFile } from 'node:fs/promises';
+import { writeFile, mkdir } from 'node:fs/promises';
 import { normalise } from '../lib/schema.mjs';
 
 const KEY = process.env.MYSWITZERLAND_API_KEY;
@@ -26,6 +26,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     if (!data?.length) break;
     out.push(...data.map(convert).filter(Boolean));
   }
+  await mkdir('data/sources', { recursive: true });
   await writeFile('data/sources/myswitzerland.json', JSON.stringify(out));
   console.log(`myswitzerland: ${out.length} activities`);
 }

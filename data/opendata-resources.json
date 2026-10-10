@@ -1,1 +1,128 @@
-[]
+[
+ {
+  "id": "bs-spielplaetze",
+  "name": "Spielen in Basel: Spielplätze (Kanton Basel-Stadt)",
+  "url": "https://data.bs.ch/api/v2/catalog/datasets/100462/exports/geojson",
+  "format": "geojson",
+  "map": {
+   "name": "spielplatz_name",
+   "lat": "__lat",
+   "lon": "__lon"
+  },
+  "defaults": {
+   "category": "playground",
+   "cost": "free",
+   "kind": "physical",
+   "difficulty": "easy",
+   "city": "Basel",
+   "languages": []
+  }
+ },
+ {
+  "id": "bs-kinder-jugend",
+  "name": "Kinder- und Jugendangebote (Kanton Basel-Stadt)",
+  "url": "https://data.bs.ch/api/v2/catalog/datasets/100024/exports/geojson",
+  "format": "geojson",
+  "filter": {
+   "ki_angebot": "TRUE"
+  },
+  "map": {
+   "name": "angebot",
+   "lat": "__lat",
+   "lon": "__lon",
+   "city": "ort"
+  },
+  "defaults": {
+   "category": "workshop",
+   "cost": "unknown",
+   "kind": "both",
+   "maxAge": 12,
+   "languages": [
+    "de"
+   ]
+  }
+ },
+ {
+  "id": "be-spielplaetze",
+  "name": "Spielplätze (Stadt Bern)",
+  "url": "https://map.bern.ch/arcgis/services/Geoportal/Spielplaetze/MapServer/WFSServer?service=WFS&version=2.0.0&request=GetFeature&typeNames=Geoportal_Spielplaetze_1:Spielplatz&outputFormat=GeoJSON&srsName=EPSG:4326",
+  "format": "geojson",
+  "swapAxes": true,
+  "map": {
+   "name": "PUNKTNAME",
+   "description": "BESCHRIEB",
+   "url": "URL",
+   "lat": "__lat",
+   "lon": "__lon"
+  },
+  "defaults": {
+   "category": "playground",
+   "cost": "free",
+   "kind": "physical",
+   "difficulty": "easy",
+   "city": "Bern",
+   "languages": []
+  }
+ },
+ {
+  "id": "lu-spielplaetze",
+  "name": "Öffentliche Spielplätze (Stadt Luzern)",
+  "url": "https://map.stadtluzern.ch/ogd/ogddownload/gis/citymaps/citymaps_poi/citymaps_spielplatz_json.zip",
+  "format": "geojson",
+  "zip": true,
+  "crs": "EPSG:2056",
+  "map": {
+   "name": "NAME",
+   "lat": "__lat",
+   "lon": "__lon"
+  },
+  "defaults": {
+   "category": "playground",
+   "cost": "free",
+   "kind": "physical",
+   "difficulty": "easy",
+   "city": "Luzern",
+   "languages": []
+  }
+ },
+ {
+  "id": "bl-spielplaetze",
+  "name": "Spielplätze (Stadt Biel/Bienne)",
+  "url": "https://sig.biel-bienne.ch/datastore/E331_Spielplaetze_und_geraete-Places_de_jeux_et_equipements/e331_spielplaetze_und_geraete.json",
+  "format": "geojson",
+  "layer": "e331_spielplaetze",
+  "crs": "EPSG:2056",
+  "map": {
+   "name": "name",
+   "lat": "__lat",
+   "lon": "__lon"
+  },
+  "defaults": {
+   "category": "playground",
+   "cost": "free",
+   "kind": "physical",
+   "difficulty": "easy",
+   "city": "Biel/Bienne",
+   "languages": []
+  }
+ },
+ {
+  "id": "zh-spielplaetze",
+  "name": "POI öffentliche Spielplätze (Stadt Zürich)",
+  "url": "https://www.ogd.stadt-zuerich.ch/wfs/geoportal/POI_oeffentliche_Spielplaetze?service=WFS&version=1.1.0&request=GetFeature&typeName=poi_spielplatz_view&outputFormat=GeoJSON&srsName=EPSG:4326",
+  "format": "geojson",
+  "map": {
+   "name": "name",
+   "lat": "__lat",
+   "lon": "__lon"
+  },
+  "defaults": {
+   "category": "playground",
+   "cost": "free",
+   "kind": "physical",
+   "difficulty": "easy",
+   "city": "Zürich",
+   "languages": []
+  }
+ }
+]

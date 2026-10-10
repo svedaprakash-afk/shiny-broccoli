@@ -30,6 +30,7 @@
     <fieldset><legend data-t="cost">Cost</legend><div id="f-cost" class="chips"></div></fieldset>
     <fieldset><legend data-t="kind">Type</legend><div id="f-kind" class="chips"></div></fieldset>
     <fieldset><legend data-t="difficulty">Difficulty</legend><div id="f-diff" class="chips"></div></fieldset>
+    <fieldset id="sport-box" hidden><legend data-t="sport">Sport</legend><div id="f-sport" class="chips"></div></fieldset>
     <fieldset><legend data-t="language">Language</legend><div id="f-lang" class="chips"></div></fieldset>
   </aside>
   <section aria-live="polite">
@@ -51,14 +52,35 @@
       <label><span data-t="kind">Type</span><select name="kind"><option value="physical">Physical</option><option value="mental">Mental</option><option value="both">Both</option></select></label>
       <label><span data-t="difficulty">Difficulty</span><select name="difficulty"><option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option><option value="unknown">?</option></select></label>
     </div>
-    <label><span data-t="address">City</span><input name="city" maxlength="60"></label>
-    <label><span data-t="coords">Coordinates (lat, lon)</span><input name="coords" required placeholder="47.37690, 8.54170"></label>
-    <button type="button" id="here" class="ghost" data-t="pickhere">Use my location</button>
+    <label id="sport-row" hidden><span data-t="sportType">Type of sport</span><select name="sport"></select></label>
+    <fieldset id="fee-row" hidden><legend data-t="fee">Fee (CHF)</legend>
+      <div class="row"><label><span data-t="feeFrom">from</span><input name="feeMin" type="number" min="0" max="1000" step="0.5" style="width:6rem"></label>
+      <label><span data-t="feeTo">to</span><input name="feeMax" type="number" min="0" max="1000" step="0.5" style="width:6rem"></label></div>
+      <label><span data-t="feeNote">Price note</span><input name="feeNote" maxlength="120"></label></fieldset>
+    <fieldset><legend data-t="address">Address</legend>
+      <div class="row"><input name="address" maxlength="150" placeholder="Bahnhofstrasse 10, 8001 Zürich" style="flex:1;min-width:12rem" autocomplete="street-address">
+      <button type="button" id="find" class="ghost" data-t="find">Find address</button></div>
+      <select id="geo-matches" hidden aria-label="Address matches"></select>
+      <p class="muted" id="geo-status" role="status"></p>
+      <label><span data-t="city">City</span><input name="city" maxlength="60"></label>
+      <details><summary class="muted" data-t="coordsAlt">Or enter coordinates</summary>
+        <input name="coords" placeholder="47.37690, 8.54170" style="width:100%">
+        <button type="button" id="here" class="ghost" data-t="pickhere" style="margin-top:6px">Use my location</button></details>
+    </fieldset>
     <label><span data-t="website">Website</span><input name="url" type="url" maxlength="500"></label>
     <div class="row"><span data-t="ages">Age from / to</span><input name="minAge" type="number" min="0" max="18" style="width:5rem"><input name="maxAge" type="number" min="0" max="18" style="width:5rem"></div>
     <fieldset><legend data-t="langs">Languages</legend><div class="chips">
       <label><input type="checkbox" name="languages" value="de"><span>DE</span></label><label><input type="checkbox" name="languages" value="fr"><span>FR</span></label>
       <label><input type="checkbox" name="languages" value="it"><span>IT</span></label><label><input type="checkbox" name="languages" value="en"><span>EN</span></label></div></fieldset>
+    <fieldset><legend data-t="photos">Add photos</legend>
+      <label style="flex-direction:row;gap:8px;align-items:center"><input type="checkbox" id="addPhotos"><span data-t="photos">Add photos</span></label>
+      <div id="photo-box" hidden>
+        <p class="muted" data-t="photoHelp"></p>
+        <label><span data-t="photoCredit">Photographer's name</span><input name="photoCredit" maxlength="120"></label>
+        <label><span data-t="photoLicense">Licence</span><select name="photoLicense"><option>CC BY-SA 4.0</option><option>CC BY 4.0</option><option>CC0 1.0</option></select></label>
+        <label style="flex-direction:row;gap:8px;align-items:flex-start"><input type="checkbox" name="photoRights"><span data-t="photoRights"></span></label>
+      </div>
+    </fieldset>
     <p class="muted" id="submitNote"></p>
     <div class="row"><button type="submit" data-t="send">Submit via GitHub</button><button type="button" id="cancel" class="ghost" data-t="cancel">Cancel</button></div>
   </form>
